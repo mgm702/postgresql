@@ -13,3 +13,10 @@ postgresql_pg_gem 'system install' do
   options '--no-document'
   client_version '9.6'
 end
+
+postgresql_pg_gem 'omnibus install' do
+  gem_binary '/opt/chef/embedded/bin/gem'
+  ruby_binary '/opt/chef/embedded/bin/ruby'
+  options '--no-document -- --with-pg-config=/usr/bin/pg_config'
+  client_version '9.6'
+end

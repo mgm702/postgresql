@@ -35,7 +35,7 @@ action :create do
   createdb << " -O #{new_resource.owner}" if new_resource.owner
   createdb << " #{new_resource.database}"
 
-  ::File.open('/tmp/db_output', 'w') { |file| file.write("#{new_resource}") }
+  ::File.open('/tmp/db_output', 'w') { |file| file.write("#{new_resource.database}") }
 
   bash "Create Database #{new_resource.database}" do
     code createdb

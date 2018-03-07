@@ -22,6 +22,8 @@ property :createrole,         [true, false], default: false
 property :inherit,            [true, false], default: true
 property :replication,        [true, false], default: false
 property :login,              [true, false], default: true
+property :host,               String
+property :port,               Integer, default: 5432
 property :password,           String
 property :encrypted_password, String
 property :valid_until,        String
@@ -30,11 +32,18 @@ property :attributes,         Hash, default: {}
 action :create do
   Chef::Log.warn('You cannot use "attributes" property with create action.') unless new_resource.attributes.empty?
 
-  execute "create postgresql user #{new_resource.user}" do # ~FC009
+  create_user = 'psql'
+  create_user << " -U postgres"
+  create_user << " -h #{new_resource.host}" if new_resource.host
+  create_user << " -p #{new_resource.port}" if new_resource.port
+  create_user << " -c 'CREATE ROLE " + role_sql(new_resource) + "'"
+
+  bash "create postgresql user #{new_resource}" do # ~FC009
     user 'postgres'
-    command %(psql -c "CREATE ROLE #{role_sql(new_resource)}")
+    code create_user
     sensitive true
-    not_if { slave? || user_exists?(new_resource) }
+    #not_if { slave? || user_exists?(new_resource) }
+    only_if { user_exists?(new_resource) }
   end
 end
 
@@ -86,7 +95,7 @@ action_class do
   end
 
   def role_sql(new_resource)
-    sql = %(\\\"#{new_resource.user}\\\" WITH )
+    sql = %(\"#{new_resource.user}\" WITH )
 
     %w(superuser createdb createrole inherit replication login).each do |perm|
       sql << "#{'NO' unless new_resource.send(perm)}#{perm.upcase} "

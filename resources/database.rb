@@ -35,12 +35,11 @@ action :create do
   createdb << " -O #{new_resource.owner}" if new_resource.owner
   createdb << " #{new_resource.database}"
 
-  ::File.open('/tmp/db_output', 'w') { |file| file.write("#{new_resource.database}") }
-
   bash "Create Database #{new_resource.database}" do
     code createdb
     user new_resource.user
-    not_if { slave? || database_exists?(new_resource) }
+    #not_if { slave? || database_exists?(new_resource) }
+    not_if { database_exists?(new_resource) }
   end
 end
 

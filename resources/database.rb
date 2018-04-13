@@ -37,7 +37,6 @@ action :create do
 
   bash "Create Database #{new_resource.database}" do
     code createdb
-    user new_resource.user
     #not_if { slave? || database_exists?(new_resource) }
     not_if { database_exists?(new_resource) }
   end

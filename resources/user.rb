@@ -33,17 +33,19 @@ action :create do
   Chef::Log.warn('You cannot use "attributes" property with create action.') unless new_resource.attributes.empty?
 
   create_user = 'psql'
-  create_user << " -U postgres"
-  create_user << " -h #{new_resource.host}" if new_resource.host
+  if new_resource.host
+    create_user << " -U postgres"
+    create_user << " -h #{new_resource.host}"
+  end
   create_user << " -p #{new_resource.port}" if new_resource.port
   create_user << " -c 'CREATE ROLE " + role_sql(new_resource) + "'"
 
   bash "create postgresql user #{new_resource}" do # ~FC009
-    user 'postgres'
+    user 'postgres' if !new_resource.host
     code create_user
-    sensitive true
+    sensitive false
     #not_if { slave? || user_exists?(new_resource) }
-    only_if { user_exists?(new_resource) }
+    not_if { user_exists?(new_resource) }
   end
 end
 
@@ -87,9 +89,20 @@ end
 
 action_class do
   def user_exists?(new_resource)
-    exists = %(psql -c "SELECT rolname FROM pg_roles WHERE rolname='#{new_resource.user}'" | grep '#{new_resource.user}')
+    if new_resource.host
+      exists = "psql "
+      exists << "-U postgres "
+      exists << "-h #{new_resource.host} "
+    end
 
-    cmd = Mixlib::ShellOut.new(exists, user: 'postgres')
+    exists << %(-c "SELECT rolname FROM pg_roles WHERE rolname='#{new_resource.user}'" | grep '#{new_resource.user}')
+
+    if new_resource.host
+      cmd = Mixlib::ShellOut.new(exists)
+    else
+      cmd = Mixlib::ShellOut.new(exists, user: 'postgres')
+    end
+
     cmd.run_command
     cmd.exitstatus == 0
   end
